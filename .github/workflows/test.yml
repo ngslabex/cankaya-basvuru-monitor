@@ -1,4 +1,4 @@
-name: Test Cankaya
+name: TLS Test
 
 on:
   workflow_dispatch:
@@ -8,9 +8,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test with curl
+      - name: Show Runner Info
         run: |
+          uname -a
+          curl --version
+          openssl version
+
+      - name: DNS Test
+        run: |
+          nslookup basvuru.cankaya.bel.tr || true
+          getent hosts basvuru.cankaya.bel.tr || true
+
+      - name: OpenSSL TLS Handshake
+        run: |
+          echo "===== OpenSSL Test ====="
+          timeout 30 openssl s_client \
+            -connect basvuru.cankaya.bel.tr:443 \
+            -servername basvuru.cankaya.bel.tr \
+            < /dev/null || true
+
+      - name: Curl HTTPS Test
+        run: |
+          echo "===== CURL TEST ====="
           curl -v \
-          --resolve basvuru.cankaya.bel.tr:443:212.175.136.176 \
-          --http1.1 \
-          https://basvuru.cankaya.bel.tr/
+            --http1.1 \
+            --connect-timeout 20 \
+            --max-time 60 \
+            https://basvuru.cankaya.bel.tr/ || true
+
+      - name: Curl HTTPS Test (IP Resolve)
+        run: |
+          echo "===== CURL RESOLVE TEST ====="
+          curl -v \
+            --http1.1 \
+            --connect-timeout 20 \
+            --max-time 60 \
+            --resolve basvuru.cankaya.bel.tr:443:212.175.136.176 \
+            https://basvuru.cankaya.bel.tr/ || true
