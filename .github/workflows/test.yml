@@ -1,47 +1,89 @@
-name: TLS Test
+name: Network Diagnostics
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  diagnostics:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Show Runner Info
+      - name: System Information
         run: |
+          echo "===== SYSTEM ====="
           uname -a
+          echo
           curl --version
+          echo
           openssl version
 
-      - name: DNS Test
+      - name: DNS Lookup
         run: |
+          echo "===== DNS ====="
           nslookup basvuru.cankaya.bel.tr || true
+          echo
           getent hosts basvuru.cankaya.bel.tr || true
 
-      - name: OpenSSL TLS Handshake
+      - name: TCP Connectivity
         run: |
-          echo "===== OpenSSL Test ====="
+          echo "===== TCP ====="
+          timeout 10 bash -c "cat < /dev/null > /dev/tcp/basvuru.cankaya.bel.tr/443" \
+          && echo "TCP CONNECT OK" \
+          || echo "TCP CONNECT FAILED"
+
+      - name: OpenSSL Handshake
+        run: |
+          echo "===== OPENSSL ====="
           timeout 30 openssl s_client \
             -connect basvuru.cankaya.bel.tr:443 \
             -servername basvuru.cankaya.bel.tr \
+            -brief \
             < /dev/null || true
 
-      - name: Curl HTTPS Test
+      - name: CURL HTTP/1.1
         run: |
-          echo "===== CURL TEST ====="
-          curl -v \
+          echo "===== CURL HTTP1 ====="
+          curl -vvv \
             --http1.1 \
             --connect-timeout 20 \
-            --max-time 60 \
+            --max-time 30 \
             https://basvuru.cankaya.bel.tr/ || true
 
-      - name: Curl HTTPS Test (IP Resolve)
+      - name: CURL HTTP/2
         run: |
-          echo "===== CURL RESOLVE TEST ====="
-          curl -v \
+          echo "===== CURL HTTP2 ====="
+          curl -vvv \
+            --http2 \
+            --connect-timeout 20 \
+            --max-time 30 \
+            https://basvuru.cankaya.bel.tr/ || true
+
+      - name: CURL TLS1.2
+        run: |
+          echo "===== TLS1.2 ====="
+          curl -vvv \
+            --tls-max 1.2 \
             --http1.1 \
             --connect-timeout 20 \
-            --max-time 60 \
+            --max-time 30 \
+            https://basvuru.cankaya.bel.tr/ || true
+
+      - name: CURL TLS1.3
+        run: |
+          echo "===== TLS1.3 ====="
+          curl -vvv \
+            --tlsv1.3 \
+            --http1.1 \
+            --connect-timeout 20 \
+            --max-time 30 \
+            https://basvuru.cankaya.bel.tr/ || true
+
+      - name: CURL With Fixed IP
+        run: |
+          echo "===== RESOLVE ====="
+          curl -vvv \
             --resolve basvuru.cankaya.bel.tr:443:212.175.136.176 \
+            --http1.1 \
+            --connect-timeout 20 \
+            --max-time 30 \
             https://basvuru.cankaya.bel.tr/ || true
