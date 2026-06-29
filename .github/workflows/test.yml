@@ -8,12 +8,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - run: pip install requests
-
-      - run: python test.py
+      - name: Test with curl
+        run: |
+          curl -v \
+          --resolve basvuru.cankaya.bel.tr:443:212.175.136.176 \
+          --http1.1 \
+          https://basvuru.cankaya.bel.tr/
